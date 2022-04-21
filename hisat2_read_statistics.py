@@ -26,6 +26,7 @@ from argparse import ArgumentParser, FileType
 COMPRESSION_NON   = 0
 COMPRESSION_GZIP  = 1
 COMPRESSION_BZIP2 = 2
+COMPRESSION_ZSTD  = 3
 
 SEQUENCE_UNKNOWN  = -1
 SEQUENCE_FASTA    = 0
@@ -127,6 +128,9 @@ def parse_type(fname):
     elif ext.lower() == "bz2":
         compression_type = COMPRESSION_BZIP2
         ext = ff[-2]
+    elif ext.lower() == "zst":
+        compression_type = COMPRESSION_ZSTD
+        ext = ff[-2]
 
     if ext.lower() in FASTA_EXTENSIONS:
         sequence_type = SEQUENCE_FASTA
@@ -168,11 +172,18 @@ def reads_stat(read_file, read_count):
     length_map = {}
     try:
         sequence_type, compression_type = parse_type(read_file)
-
+        print()
+        print(sequence_type, compression_type)
+        print()
         if compression_type == COMPRESSION_GZIP:
             fp = gzip.open(read_file, 'rt')
         elif compression_type == COMPRESSION_BZIP2:
             fp = bz2.open(read_file, 'rt')
+        elif compression_type == COMPRESSION_ZSTD:
+            import io, zstandard
+            fb = open(read_file, 'rb')
+            reader = zstandard.ZstdDecompressor().stream_reader(fb)
+            fp = io.TextIOWrapper(reader, encoding='utf-8')
         else:
             assert (compression_type == COMPRESSION_NON)
             fp = open(read_file, 'r')
@@ -195,8 +206,10 @@ def reads_stat(read_file, read_count):
             cnt += 1
             if read_count > 0 and cnt >= read_count:
                 break
-
+        
         fp.close()
+        if compression_type == COMPRESSION_ZSTD:
+            fb.close()
 
     except BaseException as e:
         print("Warning: {}".format(e), file=sys.stderr)
