@@ -172,9 +172,7 @@ def reads_stat(read_file, read_count):
     length_map = {}
     try:
         sequence_type, compression_type = parse_type(read_file)
-        print()
-        print(sequence_type, compression_type)
-        print()
+        
         if compression_type == COMPRESSION_GZIP:
             fp = gzip.open(read_file, 'rt')
         elif compression_type == COMPRESSION_BZIP2:
